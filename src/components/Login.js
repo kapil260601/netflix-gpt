@@ -1,9 +1,11 @@
 import React, { useRef, useState } from 'react'
 import Header from './Header';
 import { checkValidData } from '../utils/validate';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from '../utils/firebase';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { addUser, removeUser } from '../utils/userSlice';
 
 
 const Login = () => {
@@ -16,7 +18,9 @@ const Login = () => {
     const email = useRef(null);
     const password = useRef(null);
 
-  const navigate = useNavigate();
+    const navigate = useNavigate();
+
+    const dispatch = useDispatch();
 
 
     const handleButtonCLick = () => {
@@ -44,14 +48,25 @@ const Login = () => {
             createUserWithEmailAndPassword(auth, email.current.value, password.current.value)
                 .then((userCredential) => {
                     const user = userCredential.user;
+                    updateProfile(user, {
+                        displayName: fullName.current.value, photoURL: "https://avatars.githubusercontent.com/u/88288424?v=4&size=64"
+                    }).then(() => {
+                        const { uid, email, displayName, photoURL } = auth.currentUser;
+                        dispatch(addUser({ uid: uid, email: email, displayName: displayName, photoURL: photoURL }));
+                        navigate("/browse");
+                    }).catch((error) => {
+                        setErrorMessage(error.message);
+                    });
+
                     console.log(user);
-                    navigate("/browse");
+
                 })
                 .catch((error) => {
                     const errorCode = error.code;
                     const errorMessage = error.message;
                     setErrorMessage(errorCode + "-" + errorMessage);
                     navigate("/");
+                    dispatch(removeUser());
                 });
 
 
@@ -87,7 +102,7 @@ const Login = () => {
             </div>
 
             <form onSubmit={(e) => e.preventDefault()} className='absolute px-16 py-10 bg-black my-20 w-1/3 mx-auto right-0 left-0 text-white rounded-md bg-opacity-65 shadow-lg'>
-            {/* <div
+                {/* <div
       class="animate-rotate absolute inset-0 h-full w-1/2 rounded-full bg-[conic-gradient(#0ea5e9_20deg,transparent_120deg)]"
     ></div> */}
                 <h1 className='font-bold text-3xl py-4'>{isSignInForm ? "Sign In" : "Sign Up"}</h1>
